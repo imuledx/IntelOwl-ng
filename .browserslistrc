@@ -9,4 +9,11 @@
 last 2 versions
 Firefox ESR
 not dead
-IE 9-11 # For IE 9-11 support, remove 'not'.
+not IE_Mob 11
+not IE 9-11 # For IE 9-11 support, remove 'not'.
+not kaios 2.5
+not baidu 7.12
+not and_uc 12.12
+not op_mini all
+not and_qq 10.4
+not edge 18
