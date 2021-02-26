@@ -2,96 +2,70 @@ import { Injectable } from '@angular/core';
 import { HttpService } from './http.service';
 import { ReplaySubject } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { IObservableAnalyzers, IRawAnalyzerConfig } from '../models/models';
+import { IAnalyzersList, IRawAnalyzerConfig } from '../models/models';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AnalyzerConfigService extends HttpService<any> {
-  public rawAnalyzerConfig: IRawAnalyzerConfig[];
-  private _observableAnalyzers$: ReplaySubject<
-    IObservableAnalyzers
-  > = new ReplaySubject<IObservableAnalyzers>() as ReplaySubject<
-    IObservableAnalyzers
-  >;
-
-  private _fileAnalyzers$: ReplaySubject<any> = new ReplaySubject<
-    any
-  >() as ReplaySubject<any>;
+  public rawAnalyzerConfig: IRawAnalyzerConfig = {};
+  private _analyzersList$: ReplaySubject<IAnalyzersList> = new ReplaySubject(1);
 
   constructor(private _httpClient: HttpClient) {
     super(_httpClient);
     this.init().then();
   }
 
-  get fileAnalyzers$() {
-    return this._fileAnalyzers$.asObservable();
-  }
-
-  get observableAnalyzers$() {
-    return this._observableAnalyzers$.asObservable();
+  get analyzersList$() {
+    return this._analyzersList$.asObservable();
   }
 
   private async init(): Promise<void> {
     try {
-      const resp: any = await this.query({}, 'get_analyzer_configs');
-      const data: any[] = Object.entries(resp).map(([k, v]) => {
-        v['name'] = k;
-        return v;
-      });
-      this.rawAnalyzerConfig = data.filter(
-        (o) => !o.disabled
-      ) as IRawAnalyzerConfig[];
-      this.parse().then(([_arr, _obj]) => {
-        this._fileAnalyzers$.next(_arr);
-        this._observableAnalyzers$.next(_obj);
-      });
+      this.rawAnalyzerConfig = await this.query({}, 'get_analyzer_configs');
+      await this.makeAnalyzersList();
     } catch (e) {
       console.error(e);
     }
   }
 
-  private async parse(): Promise<any[]> {
-    const fileAnalyzersArr = [] as any[];
-    const obsAnalyzers: IObservableAnalyzers = {
+  private async makeAnalyzersList(): Promise<void> {
+    const analyzers: IAnalyzersList = {
       ip: [],
       hash: [],
       domain: [],
       url: [],
-    } as IObservableAnalyzers;
+      generic: [],
+      file: [],
+    };
 
-    this.rawAnalyzerConfig.forEach((obj) => {
+    const obsToCheck: string[] = ['ip', 'url', 'domain', 'hash', 'generic'];
+
+    Object.entries(this.rawAnalyzerConfig).forEach(([key, obj]) => {
       if (obj['type'] === 'file') {
-        fileAnalyzersArr.push(obj);
+        analyzers['file'].push(key);
         if (obj['run_hash']) {
-          obsAnalyzers['hash'].push(obj);
+          analyzers['hash'].push(key);
         }
       } else {
-        if (obj['observable_supported'].includes('ip')) {
-          obsAnalyzers['ip'].push(obj);
-        }
-        if (obj['observable_supported'].includes('url')) {
-          obsAnalyzers['url'].push(obj);
-        }
-        if (obj['observable_supported'].includes('domain')) {
-          obsAnalyzers['domain'].push(obj);
-        }
-        if (obj['observable_supported'].includes('hash')) {
-          obsAnalyzers['hash'].push(obj);
-        }
+        obsToCheck.forEach((clsfn: string) => {
+          if (obj['observable_supported'].includes(clsfn)) {
+            analyzers[clsfn].push(key);
+          }
+        });
       }
     });
-    return [fileAnalyzersArr, obsAnalyzers];
+    this._analyzersList$.next(analyzers);
   }
 
   constructTableData(): any[] {
-    return this.rawAnalyzerConfig.map((obj: IRawAnalyzerConfig) => {
+    return Object.entries(this.rawAnalyzerConfig).map(([key, obj]) => {
+      obj['name'] = key;
       if (obj.hasOwnProperty('observable_supported')) {
         obj['supports'] = obj['observable_supported'];
       } else {
         obj['supports'] = obj['supported_filetypes'];
       }
-      // for requires_configuration too ?
       if (!obj.hasOwnProperty('external_service')) {
         obj['external_service'] = false;
       }

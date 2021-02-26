@@ -5,7 +5,7 @@ import {
   HttpResponse,
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { first } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export type IRestTransform = (response: HttpResponse<any>) => any;
@@ -58,64 +58,13 @@ export abstract class HttpService<T> {
     };
   }
 
-  protected static catchError(error: any) {
-    if (error.status !== 404 && error.status <= 500) {
-      const err = new Error();
-      err.name = error.name;
-      err.message = error.error;
-    }
-
-    let title: string = null;
-    let message: string = error.statusText;
-    switch (error.status) {
-      case 0:
-        break;
-      case 400:
-        title = 'Bad Request';
-        break;
-      case 401:
-        title = 'Unauthorized';
-        break;
-      case 403:
-        title = 'Forbidden';
-        break;
-      case 404:
-        title = null;
-        break;
-      case 429:
-        const seconds: number = parseInt(error.headers.get('retry-after'), 10);
-        const _time =
-          seconds < 60
-            ? error.headers.get('retry-after') + ' seconds'
-            : seconds / 60 + ' minutes';
-        message = 'Request limit reached retry after ' + _time;
-        title = 'Network Limit';
-        break;
-      case 500:
-        title = 'Internal Server Error';
-        break;
-      default:
-        break;
-    }
-
-    console.error(`HTTP Service Error: ${title} - ${message}`);
-  }
-
   public query(query?: IRestQuery, url?: string): Promise<T> {
     const request: Observable<any> = this.http.get(
       this.buildUrl(undefined, url),
       HttpService.buildRequestOptions(query)
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          HttpService.catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
@@ -125,15 +74,7 @@ export abstract class HttpService<T> {
       HttpService.buildRequestOptions(query, 'blob')
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          HttpService.catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
@@ -147,15 +88,7 @@ export abstract class HttpService<T> {
       HttpService.buildRequestOptions(query)
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          HttpService.catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
@@ -166,15 +99,7 @@ export abstract class HttpService<T> {
       HttpService.buildRequestOptions(query)
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          HttpService.catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
@@ -190,15 +115,7 @@ export abstract class HttpService<T> {
       HttpService.buildRequestOptions(query)
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
@@ -209,15 +126,7 @@ export abstract class HttpService<T> {
       HttpService.buildRequestOptions(query)
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          HttpService.catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
@@ -231,15 +140,7 @@ export abstract class HttpService<T> {
       HttpService.buildRequestOptions(query)
     );
     return new Promise((resolve, reject) =>
-      request.subscribe(
-        (res) => {
-          return resolve(res);
-        },
-        (err) => {
-          HttpService.catchError(err);
-          return reject(err);
-        }
-      )
+      request.pipe(first()).subscribe(resolve, reject)
     );
   }
 
